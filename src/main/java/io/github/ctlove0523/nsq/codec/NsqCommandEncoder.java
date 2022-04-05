@@ -17,6 +17,7 @@ public class NsqCommandEncoder extends MessageToMessageEncoder<NsqCommand> {
         List<String> commandLineParts = new ArrayList<>();
         commandLineParts.add(cmd.commandName().cmdName());
         commandLineParts.addAll(cmd.commandParams());
+        commandLineParts.add("\n");
         String commandLine = String.join(" ", commandLineParts);
 
         ByteBuf buf = Unpooled.buffer();
