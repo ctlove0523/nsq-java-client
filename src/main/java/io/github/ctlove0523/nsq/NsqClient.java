@@ -55,7 +55,6 @@ public class NsqClient {
 
     public void connect() throws Exception {
         log.info("begin to connect nsq");
-        System.out.println("begin to connect server");
         EventLoopGroup workerGroup = new NioEventLoopGroup(5);
         Bootstrap bootstrap = new Bootstrap();
         bootstrap.group(workerGroup);
@@ -116,9 +115,9 @@ public class NsqClient {
     }
 
     // TODO: 2022/4/6
-    public void publish(String topic, byte[] message) {
+    public CompletableFuture<NsqFrame> publish(String topic, byte[] message) {
         NsqCommand command = new NsqPubCommand(topic, message);
-        sendCommand(command);
+        return commandReqRespContainer.executeCommand(command);
     }
 
     // TODO: 2022/4/6

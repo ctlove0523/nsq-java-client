@@ -4,6 +4,8 @@ import io.github.ctlove0523.nsq.cmd.NsqCommand;
 import io.github.ctlove0523.nsq.packets.NsqFrame;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
@@ -12,6 +14,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 public class CommandReqRespContainer {
+    private static final Logger log = LoggerFactory.getLogger(CommandReqRespContainer.class);
     private BlockingQueue<NsqCommand> requests = new ArrayBlockingQueue<>(1);
     private BlockingQueue<NsqFrame> responses = new ArrayBlockingQueue<>(1);
     private Channel channel;
@@ -65,7 +68,7 @@ public class CommandReqRespContainer {
 
     public void addResponse(NsqFrame response) {
         if (!requests.isEmpty()) {
-            System.out.println("begin to add response");
+            log.info("begin to add response");
             responses.offer(response);
         }
     }
