@@ -13,8 +13,8 @@ public class NsqReqCommand implements NsqCommand {
     }
 
     @Override
-    public NsqCommandName commandName() {
-        return NsqCommandName.REQ;
+    public CommandName commandName() {
+        return CommandName.REQ;
     }
 
     @Override

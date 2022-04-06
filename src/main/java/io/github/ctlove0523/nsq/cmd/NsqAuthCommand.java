@@ -7,8 +7,8 @@ public class NsqAuthCommand implements NsqCommand {
     private byte[] auth;
 
     @Override
-    public NsqCommandName commandName() {
-        return NsqCommandName.AUTH;
+    public CommandName commandName() {
+        return CommandName.AUTH;
     }
 
     @Override

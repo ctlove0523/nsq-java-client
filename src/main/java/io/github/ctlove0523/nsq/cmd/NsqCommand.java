@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public interface NsqCommand {
-    NsqCommandName commandName();
+    CommandName commandName();
 
     default List<String> commandParams() {
         return new ArrayList<>();

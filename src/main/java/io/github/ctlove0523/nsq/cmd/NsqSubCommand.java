@@ -13,8 +13,8 @@ public class NsqSubCommand implements NsqCommand {
     }
 
     @Override
-    public NsqCommandName commandName() {
-        return NsqCommandName.SUB;
+    public CommandName commandName() {
+        return CommandName.SUB;
     }
 
     @Override

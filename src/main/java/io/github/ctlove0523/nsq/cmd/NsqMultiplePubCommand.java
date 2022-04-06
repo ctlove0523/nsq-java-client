@@ -13,8 +13,8 @@ public class NsqMultiplePubCommand implements NsqCommand {
     }
 
     @Override
-    public NsqCommandName commandName() {
-        return NsqCommandName.MultiplePub;
+    public CommandName commandName() {
+        return CommandName.MultiplePub;
     }
 
     @Override

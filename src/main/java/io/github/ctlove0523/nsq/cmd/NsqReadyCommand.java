@@ -11,8 +11,8 @@ public class NsqReadyCommand implements NsqCommand {
     }
 
     @Override
-    public NsqCommandName commandName() {
-        return NsqCommandName.RDY;
+    public CommandName commandName() {
+        return CommandName.RDY;
     }
 
     @Override

@@ -16,8 +16,8 @@ public class NsqDeferPubCommand implements NsqCommand {
     }
 
     @Override
-    public NsqCommandName commandName() {
-        return NsqCommandName.DeferPub;
+    public CommandName commandName() {
+        return CommandName.DeferPub;
     }
 
     @Override

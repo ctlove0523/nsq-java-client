@@ -1,6 +1,6 @@
 package io.github.ctlove0523.nsq.cmd;
 
-public enum NsqCommandName {
+public enum CommandName {
     IDENTIFY("IDENTIFY"),
     SUB("SUB"),
     PUB("PUB"),
@@ -16,7 +16,7 @@ public enum NsqCommandName {
 
     private final String name;
 
-    NsqCommandName(String name) {
+    CommandName(String name) {
         this.name = name;
     }
 

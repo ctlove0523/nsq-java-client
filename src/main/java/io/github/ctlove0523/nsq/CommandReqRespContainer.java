@@ -22,7 +22,6 @@ public class CommandReqRespContainer {
     }
 
     public CompletableFuture<NsqFrame> executeCommand(NsqCommand command) {
-        result = new CompletableFuture<>();
         try {
             requests.offer(command, 10, TimeUnit.SECONDS);
         } catch (InterruptedException e) {
@@ -30,6 +29,7 @@ public class CommandReqRespContainer {
             result.completeExceptionally(new TimeoutException());
             return result;
         }
+        result = new CompletableFuture<>();
         responses.clear();
 
         ChannelFuture f = channel.writeAndFlush(command);
@@ -50,6 +50,8 @@ public class CommandReqRespContainer {
             cmdResponse = responses.poll(5, TimeUnit.SECONDS);
         } catch (InterruptedException e) {
             e.printStackTrace();
+            result.completeExceptionally(e);
+            return result;
         }
 
         if (cmdResponse == null) {
@@ -63,6 +65,7 @@ public class CommandReqRespContainer {
 
     public void addResponse(NsqFrame response) {
         if (!requests.isEmpty()) {
+            System.out.println("begin to add response");
             responses.offer(response);
         }
     }

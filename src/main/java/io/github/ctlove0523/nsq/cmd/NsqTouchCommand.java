@@ -11,8 +11,8 @@ public class NsqTouchCommand implements NsqCommand {
     }
 
     @Override
-    public NsqCommandName commandName() {
-        return NsqCommandName.TOUCH;
+    public CommandName commandName() {
+        return CommandName.TOUCH;
     }
 
     @Override

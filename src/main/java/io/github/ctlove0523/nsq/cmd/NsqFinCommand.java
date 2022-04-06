@@ -11,8 +11,8 @@ public class NsqFinCommand implements NsqCommand {
     }
 
     @Override
-    public NsqCommandName commandName() {
-        return NsqCommandName.FIN;
+    public CommandName commandName() {
+        return CommandName.FIN;
     }
 
     @Override

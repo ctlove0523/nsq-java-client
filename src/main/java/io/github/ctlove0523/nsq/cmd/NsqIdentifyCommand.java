@@ -11,8 +11,8 @@ public class NsqIdentifyCommand implements NsqCommand {
     }
 
     @Override
-    public NsqCommandName commandName() {
-        return NsqCommandName.IDENTIFY;
+    public CommandName commandName() {
+        return CommandName.IDENTIFY;
     }
 
     @Override

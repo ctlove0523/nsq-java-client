@@ -13,8 +13,8 @@ public class NsqPubCommand implements NsqCommand {
     }
 
     @Override
-    public NsqCommandName commandName() {
-        return NsqCommandName.SUB;
+    public CommandName commandName() {
+        return CommandName.PUB;
     }
 
     @Override

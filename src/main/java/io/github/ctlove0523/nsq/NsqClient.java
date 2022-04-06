@@ -1,8 +1,11 @@
 package io.github.ctlove0523.nsq;
 
 import io.github.ctlove0523.nsq.cmd.NsqCommand;
+import io.github.ctlove0523.nsq.cmd.NsqFinCommand;
 import io.github.ctlove0523.nsq.cmd.NsqIdentifyCommand;
+import io.github.ctlove0523.nsq.cmd.NsqMultiplePubCommand;
 import io.github.ctlove0523.nsq.cmd.NsqNopCommand;
+import io.github.ctlove0523.nsq.cmd.NsqPubCommand;
 import io.github.ctlove0523.nsq.cmd.NsqReadyCommand;
 import io.github.ctlove0523.nsq.cmd.NsqSubCommand;
 import io.github.ctlove0523.nsq.codec.NsqCommandEncoder;
@@ -10,6 +13,7 @@ import io.github.ctlove0523.nsq.codec.NsqDecoder;
 import io.github.ctlove0523.nsq.codec.NsqFrameHandler;
 import io.github.ctlove0523.nsq.packets.NsqErrorFrame;
 import io.github.ctlove0523.nsq.packets.NsqFrame;
+import io.github.ctlove0523.nsq.packets.NsqMessageFrame;
 import io.github.ctlove0523.nsq.packets.NsqResponseFrame;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.ByteBuf;
@@ -29,6 +33,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 public class NsqClient {
@@ -49,9 +54,9 @@ public class NsqClient {
     }
 
     public void connect() throws Exception {
-        log.info("begin to connect");
+        log.info("begin to connect nsq");
         System.out.println("begin to connect server");
-        EventLoopGroup workerGroup = new NioEventLoopGroup();
+        EventLoopGroup workerGroup = new NioEventLoopGroup(5);
         Bootstrap bootstrap = new Bootstrap();
         bootstrap.group(workerGroup);
         bootstrap.channel(NioSocketChannel.class);
@@ -88,31 +93,63 @@ public class NsqClient {
 
         // Update client metadata on the server and negotiate features
         NsqCommand identifyCommand = new NsqIdentifyCommand(metadata.toJson().getBytes(StandardCharsets.UTF_8));
-        CompletableFuture<NsqFrame> identifyFuture = sendCommand(identifyCommand);
-        NsqFrame response = identifyFuture.get();
-        if (response != null) {
-            log.info("identify success:{}", ((NsqResponseFrame) response).getMessage());
+        CompletableFuture<NsqFrame> identifyFuture = commandReqRespContainer.executeCommand(identifyCommand);
+        NsqResponseFrame res = (NsqResponseFrame) identifyFuture.get();
+        if (res != null && res.getMessage().equals("OK")) {
+            log.info("identify success");
+        } else {
+            log.warn("identify failed");
         }
-        System.out.println("connect to server success");
+        log.info("connect to server success");
     }
 
-    public CompletableFuture<NsqFrame> subscribe(String topicName, String channelName) throws Exception {
+    // TODO: 2022/4/6
+    public void identify(ClientMetadata metadata) {
+        NsqCommand command = new NsqIdentifyCommand(metadata.toJson().getBytes(StandardCharsets.UTF_8));
+        sendCommand(command);
+    }
+
+    // TODO: 2022/4/6
+    public void subscribe(String topicName, String channelName) {
         NsqCommand subCommand = new NsqSubCommand(topicName, channelName);
-        return sendCommand(subCommand);
+        sendCommand(subCommand);
     }
 
-    public void ready() {
-        NsqCommand readyCommand = new NsqReadyCommand(10);
+    // TODO: 2022/4/6
+    public void publish(String topic, byte[] message) {
+        NsqCommand command = new NsqPubCommand(topic, message);
+        sendCommand(command);
+    }
+
+    // TODO: 2022/4/6
+    public void multiplePublish(String topic, List<byte[]> messages) {
+        NsqCommand command = new NsqMultiplePubCommand(topic, messages);
+        sendCommand(command);
+    }
+
+    // 成功时没有响应
+    public void ready(int size) {
+        NsqCommand readyCommand = new NsqReadyCommand(size);
         sendCommand(readyCommand);
     }
 
-    private void heartBeat() {
-        NsqCommand heartbeatCommand = new NsqNopCommand();
-        sendCommand(heartbeatCommand);
+    // 成功时没有反应
+    public void finishMessage(String messageId) {
+        NsqCommand command = new NsqFinCommand(messageId);
+        sendCommand(command);
     }
 
-    private CompletableFuture<NsqFrame> sendCommand(NsqCommand command) {
-        return commandReqRespContainer.executeCommand(command);
+    public void noop() {
+        NsqCommand command = new NsqNopCommand();
+        sendCommand(command);
+    }
+
+    private void heartBeat() {
+        noop();
+    }
+
+    private void sendCommand(NsqCommand command) {
+        channel.writeAndFlush(command);
     }
 
     public void close() {
@@ -128,13 +165,22 @@ public class NsqClient {
                 log.debug("server heartbeat");
                 heartBeat();
             } else {
+                log.info("nsq response {}", new String(nsqFrame.getData()));
                 commandReqRespContainer.addResponse(responseFrame);
             }
+
         }
 
         if (nsqFrame instanceof NsqErrorFrame) {
-            log.warn("error response {}",((NsqErrorFrame)nsqFrame).getErrorMessage());
-            commandReqRespContainer.addResponse(nsqFrame);
+            log.warn("error response {}", ((NsqErrorFrame) nsqFrame).getErrorMessage());
+            ready(10);
+        }
+        if (nsqFrame instanceof NsqMessageFrame) {
+            NsqMessageFrame messageFrame = (NsqMessageFrame) nsqFrame;
+            log.info("message id {}", new String(messageFrame.getMessageId()));
+            log.info("get message {}", new String(messageFrame.getMessageBody(), StandardCharsets.UTF_8));
+            finishMessage(new String(messageFrame.getMessageId()));
+            ready(10);
         }
     }
 }
