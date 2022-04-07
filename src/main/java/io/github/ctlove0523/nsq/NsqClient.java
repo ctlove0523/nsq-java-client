@@ -34,7 +34,13 @@ import org.slf4j.LoggerFactory;
 
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.function.BiConsumer;
+import java.util.function.Supplier;
 
 public class NsqClient {
     private static final Logger log = LoggerFactory.getLogger(NsqClient.class);
@@ -42,10 +48,17 @@ public class NsqClient {
     public static final AttributeKey<NsqClient> NSQ_CLIENT_ATTRIBUTE_KEY = AttributeKey.valueOf("nsq.client");
     private String host;
     private int port;
-    private ClientMetadata metadata;
-
     private Channel channel;
-    private CommandReqRespContainer commandReqRespContainer;
+    private SyncCommandExecutor syncCommandExecutor;
+    private ClientMetadata metadata;
+    private MessageHandler messageHandler = new MessageHandler() {
+        @Override
+        public MessageHandleResult handle(NsqMessageFrame message) {
+            System.out.println(new String(message.getMessageBody()));
+            return new MessageHandleResult(true, new String(message.getMessageId()));
+        }
+    };
+    private ExecutorService messageExecutor = Executors.newFixedThreadPool(10);
 
     public NsqClient(String host, int port, ClientMetadata metadata) {
         this.host = host;
@@ -83,7 +96,7 @@ public class NsqClient {
 
         this.channel.attr(NSQ_CLIENT_ATTRIBUTE_KEY).set(this);
 
-        this.commandReqRespContainer = new CommandReqRespContainer(this.channel);
+        this.syncCommandExecutor = new SyncCommandExecutor(this.channel);
         // connect to nsq success,begin to send proto version
         ByteBuf buf = Unpooled.buffer();
         buf.writeBytes(PROTOCOL_VERSION);
@@ -91,10 +104,8 @@ public class NsqClient {
         channel.flush();
 
         // Update client metadata on the server and negotiate features
-        NsqCommand identifyCommand = new NsqIdentifyCommand(metadata.toJson().getBytes(StandardCharsets.UTF_8));
-        CompletableFuture<NsqFrame> identifyFuture = commandReqRespContainer.executeCommand(identifyCommand);
-        NsqResponseFrame res = (NsqResponseFrame) identifyFuture.get();
-        if (res != null && res.getMessage().equals("OK")) {
+        NsqResponseFrame identifyRes = identify(metadata);
+        if (identifyRes !=null && identifyRes.getMessage().equals("OK")) {
             log.info("identify success");
         } else {
             log.warn("identify failed");
@@ -102,28 +113,24 @@ public class NsqClient {
         log.info("connect to server success");
     }
 
-    // TODO: 2022/4/6
-    public void identify(ClientMetadata metadata) {
+    public NsqResponseFrame identify(ClientMetadata metadata) {
         NsqCommand command = new NsqIdentifyCommand(metadata.toJson().getBytes(StandardCharsets.UTF_8));
-        sendCommand(command);
+        return syncCommandExecutor.executeCommand(command);
     }
 
-    // TODO: 2022/4/6
-    public void subscribe(String topicName, String channelName) {
+    public NsqResponseFrame subscribe(String topicName, String channelName) {
         NsqCommand subCommand = new NsqSubCommand(topicName, channelName);
-        sendCommand(subCommand);
+        return syncCommandExecutor.executeCommand(subCommand);
     }
 
-    // TODO: 2022/4/6
-    public CompletableFuture<NsqFrame> publish(String topic, byte[] message) {
+    public NsqResponseFrame publish(String topic, byte[] message) {
         NsqCommand command = new NsqPubCommand(topic, message);
-        return commandReqRespContainer.executeCommand(command);
+        return syncCommandExecutor.executeCommand(command);
     }
 
-    // TODO: 2022/4/6
-    public void multiplePublish(String topic, List<byte[]> messages) {
+    public NsqResponseFrame multiplePublish(String topic, List<byte[]> messages) {
         NsqCommand command = new NsqMultiplePubCommand(topic, messages);
-        sendCommand(command);
+        return syncCommandExecutor.executeCommand(command);
     }
 
     // 成功时没有响应
@@ -165,7 +172,7 @@ public class NsqClient {
                 heartBeat();
             } else {
                 log.info("nsq response {}", new String(nsqFrame.getData()));
-                commandReqRespContainer.addResponse(responseFrame);
+                syncCommandExecutor.addResponse(responseFrame);
             }
 
         }
@@ -176,10 +183,20 @@ public class NsqClient {
         }
         if (nsqFrame instanceof NsqMessageFrame) {
             NsqMessageFrame messageFrame = (NsqMessageFrame) nsqFrame;
-            log.info("message id {}", new String(messageFrame.getMessageId()));
-            log.info("get message {}", new String(messageFrame.getMessageBody(), StandardCharsets.UTF_8));
-            finishMessage(new String(messageFrame.getMessageId()));
-            ready(10);
+            CompletableFuture.supplyAsync(new Supplier<MessageHandleResult>() {
+                @Override
+                public MessageHandleResult get() {
+                    return messageHandler.handle(messageFrame);
+                }
+            }, messageExecutor).whenComplete(new BiConsumer<MessageHandleResult, Throwable>() {
+                @Override
+                public void accept(MessageHandleResult messageHandleResult, Throwable throwable) {
+                    if (throwable == null && messageHandleResult.isResult()) {
+                        finishMessage(messageHandleResult.getMessageId());
+                        ready(1);
+                    }
+                }
+            });
         }
     }
 }
