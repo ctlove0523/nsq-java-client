@@ -34,9 +34,7 @@ import org.slf4j.LoggerFactory;
 
 import java.nio.charset.StandardCharsets;
 import java.util.List;
-import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.BiConsumer;
@@ -133,13 +131,13 @@ public class NsqClient {
         return syncCommandExecutor.executeCommand(command);
     }
 
-    // 成功时没有响应
+    // when success this command has no response
     public void ready(int size) {
         NsqCommand readyCommand = new NsqReadyCommand(size);
         sendCommand(readyCommand);
     }
 
-    // 成功时没有反应
+    // when success this command has no response
     public void finishMessage(String messageId) {
         NsqCommand command = new NsqFinCommand(messageId);
         sendCommand(command);

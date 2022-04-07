@@ -13,6 +13,6 @@ public class ConsumerDemo {
 
         NsqResponseFrame responseFrame = client.subscribe("test-consumer", "random");
         System.out.println(responseFrame.getMessage());
-        client.ready(100);
+        client.ready(1);
     }
 }
