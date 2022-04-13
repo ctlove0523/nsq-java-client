@@ -9,6 +9,7 @@ import org.apache.logging.log4j.LogManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Objects;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.TimeUnit;
@@ -16,14 +17,18 @@ import java.util.concurrent.TimeUnit;
 public class SyncCommandExecutor {
     private static final Logger log = LoggerFactory.getLogger(SyncCommandExecutor.class);
     private BlockingQueue<NsqCommand> requests = new LinkedBlockingDeque<>(1);
-    private BlockingQueue<NsqResponseFrame> responses = new LinkedBlockingDeque<>(1);
+    private BlockingQueue<NsqFrame> responses = new LinkedBlockingDeque<>(1);
     private Channel channel;
 
     public SyncCommandExecutor(Channel channel) {
         this.channel = channel;
     }
 
-    public NsqResponseFrame executeCommand(NsqCommand command) {
+    public NsqFrame executeCommand(NsqCommand command) {
+        if (Objects.isNull(channel) || !channel.isActive()) {
+            log.warn("when execute command please connect to nsq first");
+            return null;
+        }
         try {
             if (!requests.offer(command, 15, TimeUnit.SECONDS)) {
                 return null;
@@ -36,7 +41,7 @@ public class SyncCommandExecutor {
                 return null;
             }
 
-            NsqResponseFrame response = responses.poll(15, TimeUnit.SECONDS);
+            NsqFrame response = responses.poll(15, TimeUnit.SECONDS);
             if (response == null) {
                 return null;
             }
@@ -49,7 +54,7 @@ public class SyncCommandExecutor {
         return null;
     }
 
-    public void addResponse(NsqResponseFrame response) {
+    public void addResponse(NsqFrame response) {
         if (!requests.isEmpty()) {
             try {
                 responses.offer(response, 20, TimeUnit.SECONDS);

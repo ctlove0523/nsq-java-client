@@ -113,22 +113,22 @@ public class NsqClient {
 
     public NsqResponseFrame identify(ClientMetadata metadata) {
         NsqCommand command = new NsqIdentifyCommand(metadata.toJson().getBytes(StandardCharsets.UTF_8));
-        return syncCommandExecutor.executeCommand(command);
+        return (NsqResponseFrame)syncCommandExecutor.executeCommand(command);
     }
 
     public NsqResponseFrame subscribe(String topicName, String channelName) {
         NsqCommand subCommand = new NsqSubCommand(topicName, channelName);
-        return syncCommandExecutor.executeCommand(subCommand);
+        return (NsqResponseFrame)syncCommandExecutor.executeCommand(subCommand);
     }
 
     public NsqResponseFrame publish(String topic, byte[] message) {
         NsqCommand command = new NsqPubCommand(topic, message);
-        return syncCommandExecutor.executeCommand(command);
+        return (NsqResponseFrame)syncCommandExecutor.executeCommand(command);
     }
 
     public NsqResponseFrame multiplePublish(String topic, List<byte[]> messages) {
         NsqCommand command = new NsqMultiplePubCommand(topic, messages);
-        return syncCommandExecutor.executeCommand(command);
+        return (NsqResponseFrame)syncCommandExecutor.executeCommand(command);
     }
 
     // when success this command has no response
