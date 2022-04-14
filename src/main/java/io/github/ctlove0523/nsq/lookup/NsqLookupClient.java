@@ -7,4 +7,6 @@ public interface NsqLookupClient {
     boolean ping();
 
     ProducerInfo getProducer(String topic);
+
+    Topics getTopics();
 }

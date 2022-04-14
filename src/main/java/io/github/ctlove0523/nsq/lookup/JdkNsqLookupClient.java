@@ -69,4 +69,20 @@ public class JdkNsqLookupClient implements NsqLookupClient {
 
         return null;
     }
+
+    @Override
+    public Topics getTopics() {
+        HttpRequest request = HttpRequest.newBuilder()
+                .GET()
+                .uri(URI.create(lookupEndpoint + "/topics"))
+                .build();
+        try {
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            return new Gson().fromJson(response.body(), Topics.class);
+        } catch (IOException | InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        return new Topics();
+    }
 }
