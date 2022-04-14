@@ -9,4 +9,6 @@ public interface NsqLookupClient {
     ProducerInfo getProducer(String topic);
 
     Topics getTopics();
+
+    Channels getChannels(String topic);
 }
