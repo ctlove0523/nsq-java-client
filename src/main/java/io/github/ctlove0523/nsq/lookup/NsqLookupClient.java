@@ -5,4 +5,6 @@ public interface NsqLookupClient {
     String getVersion();
 
     boolean ping();
+
+    ProducerInfo getProducer(String topic);
 }

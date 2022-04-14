@@ -25,7 +25,7 @@ public class JdkNsqLookupClient implements NsqLookupClient {
     public String getVersion() {
         HttpRequest request = HttpRequest.newBuilder()
                 .GET()
-                .uri(URI.create(lookupEndpoint +"/info"))
+                .uri(URI.create(lookupEndpoint + "/info"))
                 .build();
         try {
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
@@ -42,7 +42,7 @@ public class JdkNsqLookupClient implements NsqLookupClient {
     public boolean ping() {
         HttpRequest request = HttpRequest.newBuilder()
                 .GET()
-                .uri(URI.create(lookupEndpoint +"/ping"))
+                .uri(URI.create(lookupEndpoint + "/ping"))
                 .build();
         try {
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
@@ -52,5 +52,21 @@ public class JdkNsqLookupClient implements NsqLookupClient {
         }
 
         return false;
+    }
+
+    @Override
+    public ProducerInfo getProducer(String topic) {
+        HttpRequest request = HttpRequest.newBuilder()
+                .GET()
+                .uri(URI.create(lookupEndpoint + "/lookup?topic=" + topic))
+                .build();
+        try {
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            return new Gson().fromJson(response.body(), ProducerInfo.class);
+        } catch (IOException | InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        return null;
     }
 }
