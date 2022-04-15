@@ -101,4 +101,20 @@ public class JdkNsqLookupClient implements NsqLookupClient {
 
         return new Channels();
     }
+
+    @Override
+    public Nodes listNodes() {
+        HttpRequest request = HttpRequest.newBuilder()
+                .GET()
+                .uri(URI.create(lookupEndpoint + "/nodes"))
+                .build();
+        try {
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            return new Gson().fromJson(response.body(), Nodes.class);
+        } catch (IOException | InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        return new Nodes();
+    }
 }
