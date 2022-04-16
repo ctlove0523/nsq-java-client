@@ -15,4 +15,10 @@ public interface NsqLookupClient {
     Nodes listNodes();
 
     boolean addTopic(String topic);
+
+    boolean deleteTopic(String topic);
+
+    boolean addChannel(String topic, String channel);
+
+    boolean deleteChannel(String topic, String channel);
 }
