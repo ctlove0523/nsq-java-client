@@ -2,10 +2,14 @@ package io.github.ctlove0523.nsq.codec;
 
 import io.github.ctlove0523.nsq.NsqClient;
 import io.github.ctlove0523.nsq.packets.NsqFrame;
+import io.github.ctlove0523.nsq.v1.NettyNsqConnection;
+import io.github.ctlove0523.nsq.v1.NsqConnection;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.concurrent.TimeUnit;
 
 public class NsqFrameHandler extends SimpleChannelInboundHandler<NsqFrame> {
     private static final Logger log = LoggerFactory.getLogger(NsqFrameHandler.class);
@@ -13,7 +17,7 @@ public class NsqFrameHandler extends SimpleChannelInboundHandler<NsqFrame> {
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
         super.channelInactive(ctx);
-        NsqClient nsqClient = ctx.channel().attr(NsqClient.NSQ_CLIENT_ATTRIBUTE_KEY).get();
+        NsqConnection nsqClient = ctx.channel().attr(NettyNsqConnection.NSQ_CONNECTION_ATTRIBUTE_KEY).get();
         if (nsqClient != null) {
             log.info("Client disconnected! {}", nsqClient);
         } else {
@@ -27,9 +31,9 @@ public class NsqFrameHandler extends SimpleChannelInboundHandler<NsqFrame> {
         log.error("Nsq Frame Handler exception caught", cause);
 
         ctx.channel().close();
-        NsqClient client = ctx.channel().attr(NsqClient.NSQ_CLIENT_ATTRIBUTE_KEY).get();
+        NsqConnection client = ctx.channel().attr(NettyNsqConnection.NSQ_CONNECTION_ATTRIBUTE_KEY).get();
         if (client != null) {
-            client.close();
+//            client.close();
         } else {
             log.warn("No connection set for : {}", ctx.channel());
         }
@@ -37,11 +41,17 @@ public class NsqFrameHandler extends SimpleChannelInboundHandler<NsqFrame> {
 
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, NsqFrame msg) throws Exception {
-        final NsqClient client = ctx.channel().attr(NsqClient.NSQ_CLIENT_ATTRIBUTE_KEY).get();
+        final NsqConnection client = ctx.channel().attr(NettyNsqConnection.NSQ_CONNECTION_ATTRIBUTE_KEY).get();
         if (client != null) {
             ctx.channel().eventLoop().execute(() -> client.processNsqFrame(msg));
         } else {
             log.warn("No nsq client set for : " + ctx.channel());
         }
+    }
+
+    @Override
+    public void channelUnregistered(ChannelHandlerContext ctx) throws Exception {
+        final NsqConnection connection = ctx.channel().attr(NettyNsqConnection.NSQ_CONNECTION_ATTRIBUTE_KEY).get();
+        connection.reconnect();
     }
 }

@@ -19,6 +19,7 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
+import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.ChannelPipeline;
@@ -35,12 +36,14 @@ import java.net.SocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.util.Objects;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
 
 public class NettyNsqConnection implements NsqConnection {
     private static final Logger log = LoggerFactory.getLogger(NettyNsqConnection.class);
     public static final AttributeKey<NsqConnection> NSQ_CONNECTION_ATTRIBUTE_KEY = AttributeKey.valueOf("nsq.client");
     private static final byte[] PROTOCOL_VERSION = "  V2".getBytes();
 
+    private Bootstrap bootstrap;
     private Channel channel;
     private SyncCommandExecutor commandExecutor;
     private SocketAddress remoteAddress;
@@ -48,19 +51,12 @@ public class NettyNsqConnection implements NsqConnection {
     private MessageHandler messageHandler;
     private ExecutorService messageExecutor;
 
-    @Override
-    public Channel getChannel() {
-        return this.channel;
-    }
+    public NettyNsqConnection(SocketAddress remoteAddress, ClientMetadata clientMetadata, MessageHandler messageHandler, ExecutorService messageExecutor) {
+        this.remoteAddress = remoteAddress;
+        this.clientMetadata = clientMetadata;
+        this.messageHandler = messageHandler;
+        this.messageExecutor = messageExecutor;
 
-    @Override
-    public SocketAddress remoteAddress() {
-        return remoteAddress;
-    }
-
-    @Override
-    public boolean connect() {
-        log.info("begin to connect nsq server,remote address = {}", remoteAddress);
         EventLoopGroup workerGroup = new NioEventLoopGroup(5);
         Bootstrap bootstrap = new Bootstrap();
         bootstrap.group(workerGroup);
@@ -79,8 +75,33 @@ public class NettyNsqConnection implements NsqConnection {
                 pipeline.addLast("NSQHandler", new NsqFrameHandler()); // in
             }
         });
+        this.bootstrap = bootstrap;
+    }
+
+    @Override
+    public Channel getChannel() {
+        return this.channel;
+    }
+
+    @Override
+    public SocketAddress remoteAddress() {
+        return remoteAddress;
+    }
+
+    @Override
+    public boolean connect() {
+        log.info("begin to connect nsq server,remote address = {}", remoteAddress);
 
         ChannelFuture connectFuture = bootstrap.connect(remoteAddress);
+
+        connectFuture.addListener(new ChannelFutureListener() {
+            @Override
+            public void operationComplete(ChannelFuture future) throws Exception {
+                if (!future.isSuccess()) {
+                    connect();
+                }
+            }
+        });
 
         this.channel = connectFuture.syncUninterruptibly().channel();
         if (!connectFuture.isSuccess()) {
@@ -90,7 +111,6 @@ public class NettyNsqConnection implements NsqConnection {
 
         this.channel.attr(NSQ_CONNECTION_ATTRIBUTE_KEY).set(this);
         this.commandExecutor = new SyncCommandExecutor(this.channel);
-
 
         // connect to nsq success,begin to send proto version
         ByteBuf buf = Unpooled.buffer();
@@ -110,6 +130,18 @@ public class NettyNsqConnection implements NsqConnection {
 
         log.info("connect nsq server: {},success", remoteAddress);
         return true;
+    }
+
+    @Override
+    public boolean reconnect() {
+        System.out.println("begin to reconnect to nsqd");
+        try {
+            TimeUnit.SECONDS.sleep(10);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        return connect();
     }
 
     @Override
