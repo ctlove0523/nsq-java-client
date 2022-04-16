@@ -13,4 +13,6 @@ public interface NsqLookupClient {
     Channels getChannels(String topic);
 
     Nodes listNodes();
+
+    boolean addTopic(String topic);
 }
