@@ -67,7 +67,7 @@ public class JdkNsqLookupClient implements NsqLookupClient {
             e.printStackTrace();
         }
 
-        return null;
+        return new ProducerInfo();
     }
 
     @Override

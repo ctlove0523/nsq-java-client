@@ -1,4 +1,4 @@
-package io.github.ctlove0523.nsq.v1;
+package io.github.ctlove0523.nsq;
 
 public interface BackoffPolicy {
     int getRetryInterval(int times);

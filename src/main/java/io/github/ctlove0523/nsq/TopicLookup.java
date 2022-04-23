@@ -1,4 +1,4 @@
-package io.github.ctlove0523.nsq.v1;
+package io.github.ctlove0523.nsq;
 
 import java.net.SocketAddress;
 import java.util.Set;

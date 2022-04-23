@@ -1,7 +1,5 @@
-package io.github.ctlove0523.nsq.v1;
+package io.github.ctlove0523.nsq;
 
-import io.github.ctlove0523.nsq.ClientMetadata;
-import io.github.ctlove0523.nsq.SyncCommandExecutor;
 import io.github.ctlove0523.nsq.cmd.NsqCloseCommand;
 import io.github.ctlove0523.nsq.cmd.NsqCommand;
 import io.github.ctlove0523.nsq.cmd.NsqFinCommand;

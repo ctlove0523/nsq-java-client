@@ -1,6 +1,4 @@
-package io.github.ctlove0523.nsq.v1;
-
-import io.github.ctlove0523.nsq.ClientMetadata;
+package io.github.ctlove0523.nsq;
 
 import java.net.SocketAddress;
 import java.util.Arrays;

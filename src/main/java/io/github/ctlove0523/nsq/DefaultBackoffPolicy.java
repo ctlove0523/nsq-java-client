@@ -1,4 +1,4 @@
-package io.github.ctlove0523.nsq.v1;
+package io.github.ctlove0523.nsq;
 
 public class DefaultBackoffPolicy implements BackoffPolicy {
     @Override
@@ -8,6 +8,6 @@ public class DefaultBackoffPolicy implements BackoffPolicy {
 
     @Override
     public int getMaxRetries() {
-        return 3;
+        return 2;
     }
 }

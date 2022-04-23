@@ -1,16 +1,12 @@
 package io.github.ctlove0523.nsq.codec;
 
-import io.github.ctlove0523.nsq.NsqClient;
 import io.github.ctlove0523.nsq.packets.NsqFrame;
-import io.github.ctlove0523.nsq.v1.NettyNsqConnection;
-import io.github.ctlove0523.nsq.v1.NsqConnection;
+import io.github.ctlove0523.nsq.NettyNsqConnection;
+import io.github.ctlove0523.nsq.NsqConnection;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.Objects;
-import java.util.concurrent.TimeUnit;
 
 public class NsqFrameHandler extends SimpleChannelInboundHandler<NsqFrame> {
     private static final Logger log = LoggerFactory.getLogger(NsqFrameHandler.class);
@@ -53,9 +49,9 @@ public class NsqFrameHandler extends SimpleChannelInboundHandler<NsqFrame> {
     @Override
     public void channelUnregistered(ChannelHandlerContext ctx) throws Exception {
         final NsqConnection connection = ctx.channel().attr(NettyNsqConnection.NSQ_CONNECTION_ATTRIBUTE_KEY).get();
-        if (Objects.nonNull(connection)) {
-
-            connection.reconnect();
-        }
+//        if (Objects.nonNull(connection)) {
+//
+//            connection.reconnect();
+//        }
     }
 }

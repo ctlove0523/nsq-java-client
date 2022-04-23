@@ -1,4 +1,4 @@
-package io.github.ctlove0523.nsq.v1;
+package io.github.ctlove0523.nsq;
 
 import io.github.ctlove0523.nsq.lookup.JdkNsqLookupClient;
 import io.github.ctlove0523.nsq.lookup.NsqLookupClient;
@@ -28,7 +28,7 @@ public class DefaultTopicLookup implements TopicLookup {
 
     @Override
     public Set<SocketAddress> addresses(String topic) {
-        return null;
+        return getProducers(topic);
     }
 
     private Set<SocketAddress> getProducers(String topic) {

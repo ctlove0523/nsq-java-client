@@ -1,4 +1,4 @@
-package io.github.ctlove0523.nsq.v1;
+package io.github.ctlove0523.nsq;
 
 import io.github.ctlove0523.nsq.cmd.NsqCommand;
 import io.github.ctlove0523.nsq.packets.NsqFrame;
