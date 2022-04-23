@@ -14,6 +14,8 @@ public interface NsqConnection {
 
     boolean connect();
 
+    boolean connected();
+
     boolean reconnect();
 
     boolean disconnect();

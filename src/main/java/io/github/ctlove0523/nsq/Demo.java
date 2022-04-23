@@ -1,7 +1,6 @@
 package io.github.ctlove0523.nsq;
 
 import java.nio.charset.StandardCharsets;
-import java.util.concurrent.TimeUnit;
 
 public class Demo {
     public static void main(String[] args) throws Exception {

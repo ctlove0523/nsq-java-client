@@ -9,6 +9,7 @@ import io.netty.channel.SimpleChannelInboundHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
 public class NsqFrameHandler extends SimpleChannelInboundHandler<NsqFrame> {
@@ -52,6 +53,9 @@ public class NsqFrameHandler extends SimpleChannelInboundHandler<NsqFrame> {
     @Override
     public void channelUnregistered(ChannelHandlerContext ctx) throws Exception {
         final NsqConnection connection = ctx.channel().attr(NettyNsqConnection.NSQ_CONNECTION_ATTRIBUTE_KEY).get();
-        connection.reconnect();
+        if (Objects.nonNull(connection)) {
+
+            connection.reconnect();
+        }
     }
 }

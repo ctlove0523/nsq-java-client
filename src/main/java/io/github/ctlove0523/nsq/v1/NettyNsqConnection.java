@@ -2,6 +2,7 @@ package io.github.ctlove0523.nsq.v1;
 
 import io.github.ctlove0523.nsq.ClientMetadata;
 import io.github.ctlove0523.nsq.SyncCommandExecutor;
+import io.github.ctlove0523.nsq.cmd.NsqCloseCommand;
 import io.github.ctlove0523.nsq.cmd.NsqCommand;
 import io.github.ctlove0523.nsq.cmd.NsqFinCommand;
 import io.github.ctlove0523.nsq.cmd.NsqIdentifyCommand;
@@ -36,6 +37,7 @@ import java.net.SocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.util.Objects;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 public class NettyNsqConnection implements NsqConnection {
@@ -50,12 +52,30 @@ public class NettyNsqConnection implements NsqConnection {
     private ClientMetadata clientMetadata;
     private MessageHandler messageHandler;
     private ExecutorService messageExecutor;
+    private BackoffPolicy backoffPolicy;
 
-    public NettyNsqConnection(SocketAddress remoteAddress, ClientMetadata clientMetadata, MessageHandler messageHandler, ExecutorService messageExecutor) {
+    public NettyNsqConnection(SocketAddress remoteAddress, ClientMetadata clientMetadata,
+                              MessageHandler messageHandler, ExecutorService messageExecutor,
+                              BackoffPolicy backoffPolicy) {
+        Objects.requireNonNull(remoteAddress, "remoteAddress");
+        Objects.requireNonNull(clientMetadata, "clientMetadata");
+        Objects.requireNonNull(messageHandler, "messageHandler");
+
         this.remoteAddress = remoteAddress;
         this.clientMetadata = clientMetadata;
         this.messageHandler = messageHandler;
-        this.messageExecutor = messageExecutor;
+
+        if (Objects.nonNull(messageExecutor)) {
+            this.messageExecutor = messageExecutor;
+        } else {
+            this.messageExecutor = Executors.newSingleThreadExecutor();
+        }
+
+        if (Objects.nonNull(backoffPolicy)) {
+            this.backoffPolicy = backoffPolicy;
+        } else {
+            this.backoffPolicy = new DefaultBackoffPolicy();
+        }
 
         EventLoopGroup workerGroup = new NioEventLoopGroup(5);
         Bootstrap bootstrap = new Bootstrap();
@@ -133,20 +153,45 @@ public class NettyNsqConnection implements NsqConnection {
     }
 
     @Override
+    public boolean connected() {
+        return channel.isActive();
+    }
+
+    @Override
     public boolean reconnect() {
         System.out.println("begin to reconnect to nsqd");
-        try {
-            TimeUnit.SECONDS.sleep(10);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
+        for (int i = 0; i < backoffPolicy.getMaxRetries(); i++) {
+            if (connected()) {
+                return true;
+            }
 
-        return connect();
+            int retryInterval = backoffPolicy.getRetryInterval(i);
+            try {
+                TimeUnit.SECONDS.sleep(retryInterval);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+
+            boolean reconnectRes = connect();
+            if (reconnectRes) {
+                System.out.println("reconnect to nsq success");
+                break;
+            }
+        }
+        return false;
     }
 
     @Override
     public boolean disconnect() {
-        return channel.disconnect().isSuccess();
+        NsqCommand closeCommand = new NsqCloseCommand();
+        NsqResponseFrame closeResponse = (NsqResponseFrame) executeCommand(closeCommand);
+        if (closeResponse != null && closeResponse.getMessage().equals("CLOSE_WAIT")) {
+            log.info("Cleanly close connection success.");
+            return channel.disconnect().isSuccess();
+        } else {
+            channel.close();
+            return false;
+        }
     }
 
     @Override

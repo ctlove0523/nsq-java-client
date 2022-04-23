@@ -9,7 +9,7 @@ import java.util.concurrent.ExecutorService;
 public interface NsqClient extends Closeable {
     void registerMessageHandler(MessageHandler messageHandler, ExecutorService executor);
 
-    NsqResponseFrame subscribe(String topicName, String channelName);
+    void subscribe(String topicName, String channelName);
 
     NsqResponseFrame publish(String topic, byte[] message);
 
